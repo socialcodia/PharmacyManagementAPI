@@ -175,6 +175,23 @@ class DbHandler
         return $record;
     }
 
+    function getSellerSalesStatusOfEveryMonth()
+    {
+        $rec = array();
+        $record = array();
+        $query = "select date_format(created_at,'%M'),sum(sell_price) from sellers_sells group by year(created_at),month(created_at) order by year(created_at),month(created_at)";
+        $stmt = $this->con->prepare($query);
+        $stmt->execute();  
+        $stmt->bind_result($month,$sellPrice);
+        while($stmt->fetch())
+        {
+            $rec['month']= $month;
+            $rec['totalSales'] = $sellPrice;
+            array_push($record, $rec);
+        }
+        return $record;
+    }
+
     function getSalesStatusOfEveryDay()
     {
         $rec = array();
@@ -206,6 +223,30 @@ class DbHandler
             $rec['productId']= $productId;
             $rec['sellQuantity'] = $sellQuantity;
             $rec['rank'] = $rank;
+            array_push($record, $rec);
+        }
+        foreach ($record as $rec) 
+        {
+            $pro = $this->getProductById($rec['productId']);
+            $pro['sellQuantity'] = $rec['sellQuantity'];
+            array_push($products, $pro);
+        }
+        return $products;
+    }
+
+    function getTopTenMostSalesProductOfYear()
+    {
+        $rec = array();
+        $record = array();
+        $products = array();
+        $query = "SELECT product_id, SUM(sell_quantity) FROM sells GROUP BY product_id ORDER BY SUM(sell_quantity) DESC LIMIT 10";
+        $stmt = $this->con->prepare($query);
+        $stmt->execute();  
+        $stmt->bind_result($productId,$sellQuantity);
+        while($stmt->fetch())
+        {
+            $rec['productId']= $productId;
+            $rec['sellQuantity'] = $sellQuantity;
             array_push($record, $rec);
         }
         foreach ($record as $rec) 
