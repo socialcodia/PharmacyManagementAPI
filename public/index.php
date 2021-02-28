@@ -67,7 +67,7 @@ $app->get('/demo',function(Request $request, Response $response,array $args )
     $db->setUserId(819);
     // $users = array();
         $responseG = array();
-        $responseG['data'] = $db->getTopTenMostSalesProductOfEveryMonth();
+        $responseG['data'] = $db->getTopTenSellerOfThisMonth();
         $response->write(json_encode($responseG));
         return $response->withHeader(CT,AJ)
                 ->withStatus(200);
@@ -752,6 +752,52 @@ $app->get('/seller/sales/status/yearly',function(Request $request, Response $res
     }
     else
         return returnException(true,UNAUTH_ACCESS,$response);
+});
+
+$app->get('/sellers/top/monthly',function(Request $request, Response $response)
+{
+    $db = new DbHandler;
+    if (validateToken($db,$request,$response)) 
+    {
+        $sellers = $db->getTopTenSellerOfThisMonth();
+        if(!empty($sellers))
+        {
+            $resp = array();
+            $resp['error'] = false;
+            $resp['message'] = "Top Ten Sellers Found";
+            $resp['sellers'] = $sellers;
+            $response->write(json_encode($resp));
+            return $response->withHeader(CT,AJ)
+                            ->withStatus(200);
+        }
+        else
+            return returnException(true,"No Top Seller Found",$response);
+    }
+    else
+        return returnException(true,UNAUTH_ACCESS,$response);
+});
+
+$app->get('/sellers/top/yearly',function(Request $request, Response $response)
+{
+    $db = new DbHandler;
+    // if (validateToken($db,$request,$response)) 
+    // {
+        $sellers = $db->getTopTenSellerOfThisYear();
+        if(!empty($sellers))
+        {
+            $resp = array();
+            $resp['error'] = false;
+            $resp['message'] = "Top Ten Sellers Found";
+            $resp['sellers'] = $sellers;
+            $response->write(json_encode($resp));
+            return $response->withHeader(CT,AJ)
+                            ->withStatus(200);
+        }
+        else
+            return returnException(true,"No Top Seller Found",$response);
+    // }
+    // else
+    //     return returnException(true,UNAUTH_ACCESS,$response);
 });
 
 $app->get('/sales/status/days',function(Request $request, Response $response)

@@ -291,7 +291,7 @@ class DbHandler
                 break;
             case '02':
                 return 'February';
-                break;
+                break;  
             case '03':
                 return 'March';
                 break;
@@ -520,7 +520,6 @@ class DbHandler
         $paidAmount = (int) $this->getAllPaidAmountByCreditId($creditId);
         return ($invoiceAmount-$paidAmount-$paymentAmount>=0) ? true : false;
     }
-
 
     function getAllPaidAmountByInvoiceNumber($invoiceNumber)
     {
@@ -851,11 +850,12 @@ class DbHandler
     {
         if ($this->isProductAvailable($productId))
         {
+            $sellerId =$this->getSellerIdByInvoiceNumber($invoiceNumber);
             $productPrice = $this->getProductPriceById($productId);
             $productQuantity = 1;
-            $query = "INSERT INTO sellers_sells (invoice_number,product_id,sell_quantity,sell_price) VALUES(?,?,?,?)";
+            $query = "INSERT INTO sellers_sells (invoice_number,seller_id,product_id,sell_quantity,sell_price) VALUES(?,?,?,?,?)";
             $stmt = $this->con->prepare($query);
-            $stmt->bind_param("ssss",$invoiceNumber,$productId,$productQuantity,$productPrice);
+            $stmt->bind_param("sssss",$invoiceNumber,$sellerId,$productId,$productQuantity,$productPrice);
             if ($stmt->execute())
             {
                 $this->setSaleId($stmt->insert_id);
@@ -866,6 +866,54 @@ class DbHandler
         }
         else
             return PRODUCT_QUANTITY_LOW;
+    }
+
+    function getTopTenSellerOfThisMonth()
+    {
+        $sellers = array();
+        $sellerss = array();
+        $query = "SELECT SUM(sell_price), seller_id FROM sellers_sells WHERE MONTH(created_at) = MONTH(CURRENT_DATE()) GROUP BY seller_id ORDER BY SUM(sell_price) DESC";   
+        $stmt = $this->con->prepare($query);
+        $stmt->execute();
+        $stmt->bind_result($sellPrice,$sellerId);
+        while($stmt->fetch())
+        {
+            $data['sellPrice'] = $sellPrice;
+            $data['sellerId'] = $sellerId;
+            array_push($sellers, $data);
+        }
+        $stmt->close();
+        foreach ($sellers as $seller) 
+        {
+            $sel = $this->getSellerById($seller['sellerId']);
+            $sel['sales'] = $seller['sellPrice'];
+            array_push($sellerss, $sel);
+        }
+        return $sellerss;
+    }
+
+    function getTopTenSellerOfThisYear()
+    {
+        $sellers = array();
+        $sellerss = array();
+        $query = "SELECT SUM(sell_price), seller_id FROM sellers_sells WHERE YEAR(created_at) = YEAR(CURRENT_DATE()) GROUP BY seller_id ORDER BY SUM(sell_price) DESC";
+        $stmt = $this->con->prepare($query);
+        $stmt->execute();
+        $stmt->bind_result($sellPrice,$sellerId);
+        while($stmt->fetch())
+        {
+            $data['sellPrice'] = $sellPrice;
+            $data['sellerId'] = $sellerId;
+            array_push($sellers, $data);
+        }
+        $stmt->close();
+        foreach ($sellers as $seller) 
+        {
+            $sel = $this->getSellerById($seller['sellerId']);
+            $sel['sales'] = $seller['sellPrice'];
+            array_push($sellerss, $sel);
+        }
+        return $sellerss;
     }
 
     function isProductAvailable($productId)
@@ -2103,6 +2151,17 @@ class DbHandler
         $stmt->bind_result($categoryName);
         $stmt->fetch();
         return $categoryName;
+    }
+
+    function getSellerIdByInvoiceNumber($invoiceNumber)
+    {
+        $query = "SELECT seller_id FROM invoices WHERE invoice_number=?";
+        $stmt = $this->con->prepare($query);
+        $stmt->bind_param('s',$invoiceNumber);
+        $stmt->execute();
+        $stmt->bind_result($sellerId);
+        $stmt->fetch();
+        return $sellerId;
     }
 
     function getSizeById($sizeId)
