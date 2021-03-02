@@ -446,6 +446,68 @@ class DbHandler
             return false;
     }
 
+    function getMonthlyIncomeOfSellerById($sellerId)
+    {
+        $data = array();
+        $ddd = array();
+        $query = "SELECT date_format(created_at,'%M'), product_id,sell_discount,SUM(sell_quantity) FROM sellers_sells WHERE seller_id=? AND YEAR(created_at) = YEAR(CURRENT_DATE()) GROUP BY date_format(created_at,'%M'),seller_id,product_id ORDER BY created_at";
+        $stmt = $this->con->prepare($query);
+        $stmt->bind_param('s',$sellerId);
+        $stmt->execute();
+        $stmt->bind_result($monthName,$productId,$sellDiscount,$sellQuantity);
+        while ($stmt->fetch())
+        {
+            $d['monthName'] = $monthName;
+            $d['productId'] = $productId;
+            $d['sellDiscount'] = $sellDiscount;
+            $d['sellQuantity'] = $sellQuantity;
+            array_push($data, $d);
+        }
+        $stmt->close();
+        $netProfit = 0;
+        $maxProfit = 0;
+        foreach ($data as $dt)
+        {
+            $product = $this->getProductById($dt['productId']);
+            $product['productPrice'] = ($product['productPrice']/100)*$dt['sellDiscount'];
+            if ($product['productName']==='FAROOQUI MASSAGE OIL' && $product['productBrand']==='FHC' && $product['productSize']==='50ML')
+            {
+                $maxPrice = $product['productPrice']*$dt['sellQuantity'];
+                $price = ($product['productPrice']-10)*$dt['sellQuantity'];
+            }
+            if ($product['productName']==='LASANI CHOORAN' && $product['productBrand']==='FHC' && $product['productSize']==='100GM')
+            {
+                $maxPrice = $product['productPrice']*$dt['sellQuantity'];
+                $price = ($product['productPrice']-10)*$dt['sellQuantity'];
+            }
+            else if ($product['productName']==='FAROOQUI MASSAGE OIL' && $product['productBrand']==='FHC' && $product['productSize']==='100ML')
+            {
+                $maxPrice = $product['productPrice']*$dt['sellQuantity'];
+                $price = ($product['productPrice']-15)*$dt['sellQuantity'];
+            }
+            else if ($product['productName']==='FAROOQUI MASSAGE OIL' && $product['productBrand']==='FHC' && $product['productSize']==='200ML')
+            {
+                $maxPrice = $product['productPrice']*$dt['sellQuantity'];
+                $price = ($product['productPrice']-30)*$dt['sellQuantity'];
+            }
+            $netProfit = $netProfit+$price;
+            $maxProfit = $maxProfit+$maxPrice;
+            $monthName = $dt['monthName'];
+
+            if (!isset($ddd[$monthName])) {
+                $ddd[$monthName] = [
+                    'monthName' => $monthName, 
+                    'netProfit' => 0,
+                    'maxProfit' => 0,
+                ];
+            }
+
+            $ddd[$monthName]['netProfit'] += $netProfit;
+            $ddd[$monthName]['maxProfit'] += $maxProfit;
+        }
+        return array_values($ddd);
+    }
+
     function addBrand($brandName)
     {
         $query = "INSERT INTO brands (brand_name) VALUES(?)";
@@ -1653,15 +1715,16 @@ class DbHandler
         $startDT = $date->format('Y-m-d H:i:s');
         $date->setTime(23,59);
         $endDT = $date->format('Y-m-d H:i:s');
-        $query = "SELECT sell_id,product_id,sell_quantity,sell_price,created_at FROM sells where created_at between '$startDT' and '$endDT' ORDER By sell_id DESC";
+        $query = "SELECT sell_id,product_id,sell_quantity,sell_discount,sell_price,created_at FROM sells where created_at between '$startDT' and '$endDT' ORDER By sell_id DESC";
         $stmt = $this->con->prepare($query);
         $stmt->execute();
-        $stmt->bind_result($sellId,$productId,$saleQuanitty,$sellPrice,$createdAt);
+        $stmt->bind_result($sellId,$productId,$saleQuanitty,$saleDiscount,$sellPrice,$createdAt);
         while ($stmt->fetch()) 
         {
             $pro['sellId'] = $sellId;
             $pro['productId'] = $productId;
             $pro['saleQuanitty'] = $saleQuanitty;
+            $pro['saleDiscount'] = $saleDiscount;
             $pro['sellPrice'] = $sellPrice;
             $pro['createdAt'] = $createdAt;
             array_push($products, $pro);
@@ -1672,6 +1735,7 @@ class DbHandler
             $pro = $this->getProductById($product['productId']);
             $pro['saleId'] = $product['sellId'];
             $pro['saleQuanitty'] = $product['saleQuanitty'];
+            $pro['saleDiscount'] = $product['saleDiscount'];
             $pro['salePrice'] = $product['sellPrice'];
             $pro['createdAt'] = $product['createdAt'];
             array_push($pr, $pro);
@@ -1761,15 +1825,16 @@ class DbHandler
         $startDT = $date->format('Y-m-d H:i:s');
         $date->setTime(23,59);
         $endDT = $date->format('Y-m-d H:i:s');
-        $query = "SELECT sell_id,product_id,sell_quantity,sell_price,created_at FROM sells ORDER By sell_id DESC";
+        $query = "SELECT sell_id,product_id,sell_quantity,sell_discount,sell_price,created_at FROM sells ORDER By sell_id DESC";
         $stmt = $this->con->prepare($query);
         $stmt->execute();
-        $stmt->bind_result($sellId,$productId,$saleQuanitty,$sellPrice,$createdAt);
+        $stmt->bind_result($sellId,$productId,$saleQuanitty,$saleDiscount,$sellPrice,$createdAt);
         while ($stmt->fetch()) 
         {
             $pro['sellId'] = $sellId;
             $pro['productId'] = $productId;
             $pro['saleQuanitty'] = $saleQuanitty;
+            $pro['saleDiscount'] = $saleDiscount;
             $pro['sellPrice'] = $sellPrice;
             $pro['createdAt'] = $createdAt;
             array_push($products, $pro);
@@ -1780,6 +1845,7 @@ class DbHandler
             $pro = $this->getProductById($product['productId']);
             $pro['saleId'] = $product['sellId'];
             $pro['saleQuanitty'] = $product['saleQuanitty'];
+            $pro['saleDiscount'] = $product['saleDiscount'];
             $pro['salePrice'] = $product['sellPrice'];
             $pro['createdAt'] = $product['createdAt'];
             array_push($pr, $pro);

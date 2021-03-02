@@ -67,7 +67,7 @@ $app->get('/demo',function(Request $request, Response $response,array $args )
     $db->setUserId(819);
     // $users = array();
         $responseG = array();
-        $responseG['data'] = $db->getTopTenSellerOfThisMonth();
+        $responseG['data'] = $db->getMonthlyIncomeOfSellerById(2);
         $response->write(json_encode($responseG));
         return $response->withHeader(CT,AJ)
                 ->withStatus(200);
@@ -749,6 +749,32 @@ $app->get('/seller/sales/status/yearly',function(Request $request, Response $res
         }
         else
             return returnException(true,"Sales Record Not Found",$response);
+    }
+    else
+        return returnException(true,UNAUTH_ACCESS,$response);
+});
+
+$app->get('/seller/{sellerId}/income',function(Request $request, Response $response,array $args)
+{
+    $db = new DbHandler;
+    if (validateToken($db,$request,$response)) 
+    {
+        $sellerId = $args['sellerId'];
+        if (!$db->isSellerExist($sellerId))
+            return returnException(true,"Seller Not Found",$response);
+        $income = $db->getMonthlyIncomeOfSellerById($sellerId);
+        if(!empty($income))
+        {
+            $resp = array();
+            $resp['error'] = false;
+            $resp['message'] = "Seller Income Found";
+            $resp['incomes'] = $income;
+            $response->write(json_encode($resp));
+            return $response->withHeader(CT,AJ)
+                            ->withStatus(200);
+        }
+        else
+            return returnException(true,"Seller Income Not Found",$response);
     }
     else
         return returnException(true,UNAUTH_ACCESS,$response);
