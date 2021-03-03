@@ -5,46 +5,10 @@
 class Batch extends DbHandler
 {
 
-	function makeTodaySaleRecord()
-	{
-		print_r($this->getTodaysSalesRecord());
-	}
-
-
 	function isBatchAlreadyExecuted()
 	{
 
 	}
-
-    function isEmailValid($email)
-    {
-        if(filter_var($email,FILTER_VALIDATE_EMAIL))
-            return true;
-        else
-            return false;
-    }
-
-
-
-    function validateToken($token)
-    {
-        try 
-        {
-            $key = JWT_SECRET_KEY;
-            $payload = JWT::decode($token,$key,['HS256']);
-            $id = $payload->user_id;
-            if ($this->checkUserById($id)) 
-            {
-                $this->setUserId($payload->user_id);
-                return JWT_TOKEN_FINE;
-            }
-            return JWT_USER_NOT_FOUND;
-        } 
-        catch (Exception $e) 
-        {
-            return JWT_TOKEN_ERROR;    
-        }
-    }
 
     function makeReport()
     {
