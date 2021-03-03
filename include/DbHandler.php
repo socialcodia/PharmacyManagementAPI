@@ -490,8 +490,8 @@ class DbHandler
                 $maxPrice = $product['productPrice']*$dt['sellQuantity'];
                 $price = ($product['productPrice']-30)*$dt['sellQuantity'];
             }
-            $netProfit = $netProfit+$price;
-            $maxProfit = $maxProfit+$maxPrice;
+            // $netProfit = $netProfit+$price;
+            // $maxProfit = $maxProfit+$maxPrice;
             $monthName = $dt['monthName'];
 
             if (!isset($ddd[$monthName])) {
@@ -502,8 +502,8 @@ class DbHandler
                 ];
             }
 
-            $ddd[$monthName]['netProfit'] += $netProfit;
-            $ddd[$monthName]['maxProfit'] += $maxProfit;
+            $ddd[$monthName]['netProfit'] += $price;
+            $ddd[$monthName]['maxProfit'] += $maxPrice;
         }
         return array_values($ddd);
     }

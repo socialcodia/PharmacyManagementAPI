@@ -10,6 +10,7 @@ use PHPMailer\PHPMailer\Exception;
 //use Slim\Factory\AppFactory
 require '../vendor/autoload.php';
 require_once '../include/DbHandler.php';
+require_once '../include/Batch.php';
 require_once '../vendor/autoload.php';
 require_once '../include/JWT.php';
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -65,7 +66,6 @@ $app->get('/demo',function(Request $request, Response $response,array $args )
 {
     $db = new DbHandler;
     $db->setUserId(819);
-    // $users = array();
         $responseG = array();
         $responseG['data'] = $db->getMonthlyIncomeOfSellerById(2);
         $response->write(json_encode($responseG));
@@ -75,17 +75,14 @@ $app->get('/demo',function(Request $request, Response $response,array $args )
 
 $app->get('/demo1',function(Request $request, Response $response,array $args )
 {
-    $db = new DbHandler;
-    $db->setUserId(190);
-    // $users = array();
-        $responseG = array();
-        $responseG['success'] = true;
-        $responseG[ERROR] = false;
-        $responseG[MESSAGE] = "Searching Users By Keywords";
-        $responseG['data'] = $db->getNoticeProducts();
-        $response->write(json_encode($responseG));
-        return $response->withHeader(CT,AJ)
-                ->withStatus(200);
+    $db = new Batch;
+    $responseG = array();
+    $responseG['success'] = true;
+    $responseG[ERROR] = false;
+    $responseG['data'] = $db->makeReport();
+    $response->write(json_encode($responseG));
+    return $response->withHeader(CT,AJ)
+            ->withStatus(200);
 });
 
 $app->post('/login', function(Request $request, Response $response)
@@ -584,6 +581,28 @@ $app->get('/invoice/{invoiceNumber}/pdf',function(Request $request, Response $re
     }
     else
         return returnException(true,UNAUTH_ACCESS,$response);
+});
+
+$app->get('/sales/report/daily',function(Request $request, Response $response, array $args)
+{
+    $batch = new Batch;
+    // if (validateToken($db,$request,$response)) 
+    // {
+        $invoice = $batch->makeReport();
+        $mpdf = new \Mpdf\Mpdf(['orientation' => 'L']);
+        $stylesheet = file_get_contents('css/b.css'); // external css
+        // $stylesheet1 = file_get_contents('css/socialcodia.css'); // external css
+        $mpdf->WriteHTML($stylesheet,1);
+        // $mpdf->WriteHTML($stylesheet1,2);
+        $mpdf->WriteHTML($invoice,2);
+        $randNumber = rand(10000000,99999999999);
+        $invoicePDF = 'uploads/invoices/1.pdf';
+        $mpdf->Output($invoicePDF,'');
+        print_r($invoicePDF);
+
+    // }
+    // else
+    //     return returnException(true,UNAUTH_ACCESS,$response);
 });
 
 $app->get('/invoice/{invoiceNumber}/payments',function(Request $request, Response $response, array $args)
@@ -1814,6 +1833,7 @@ function getInvoiceFooter($priceAllTotalAmount,$priceAllDiscountAmount,$invoiceD
         HERE;
         return $invoiceHeader;
 }
+
 
 /*
 just parepare a name, email, mail subject and email id to send the mail,
